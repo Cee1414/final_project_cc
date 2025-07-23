@@ -1,5 +1,3 @@
-print("Dynamo init script started")
-
 import boto3
 import botocore
 import os
