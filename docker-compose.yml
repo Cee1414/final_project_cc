@@ -4,3 +4,12 @@ services:
     image: redis:7
     ports:
       - "6379:6379"
+
+  init:
+    build:
+      context: ./init
+    command: python init_dynamo.py
+    environment:
+      - TABLE_NAME=jobs
+      - ENV=development
+      - AWS_DEFAULT_REGION=us-east-1
