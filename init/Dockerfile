@@ -2,9 +2,10 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-COPY init_dynamo.py .
+COPY requirements.txt .
+RUN pip install -r requirements.txt
 
-RUN pip install boto3
+COPY init_dynamo.py .
 
 CMD ["python", "init_dynamo.py"]
 
