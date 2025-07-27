@@ -5,6 +5,8 @@ services:
       - "6379:6379"
 
   init:
+    volumes:
+        - ~/.aws:/root/.aws
     build:
       context: ./init
     command: python init_dynamo.py
@@ -14,9 +16,16 @@ services:
       - AWS_DEFAULT_REGION=us-east-1
 
   submitter:
+    volumes:
+      - ~/.aws:/root/.aws
     build:
       context: ./submitter
     command: python app.py
     ports: 
       - "127.0.0.1:5000:5000"
+    environment:
+      - TABLE_NAME=jobs
+      - ENV=development
+      - AWS_DEFAULT_REGION=us-east-1
+    
 

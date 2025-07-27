@@ -1,50 +1,56 @@
 from flask import Flask, request, redirect, url_for, render_template_string, jsonify
-import uuid
-import os
-import redis
+from controllers import submit_controller
+from services import redis_queue
 import json
-from datetime import datetime
-from zoneinfo import ZoneInfo
+import boto3
+import os
+
+dynamodb = boto3.client("dynamodb")
 
 app = Flask(__name__)
 
-redis_host = os.getenv("REDIS_HOST", "redis")
-redis_port = int(os.getenv("REDIS_PORT", 6379))
-r = redis.Redis(host=redis_host, port=redis_port, decode_responses=True)
+TABLE_NAME = os.getenv("TABLE_NAME", "jobs")
+
+print("waiting for table connection")
+dynamodb.get_waiter('table_exists').wait(TableName=TABLE_NAME)
+print(f"connected to '{TABLE_NAME}' table successfully.")
 
 @app.route("/submit", methods=["POST"])
 def submit():
-    job_id = str(uuid.uuid4())
-    input_data = request.form["input"]
-    time_submitted = datetime.now(ZoneInfo("America/Chicago")).isoformat()
-    job_type = "reverse"
+    input_data = request.form.get("input")
+    if not input_data:
+        return jsonify({"error": "Missing input"}), 400
 
-    job = {
-    "job_id": job_id,
-    "job_type": job_type,
-    "input": input_data,
-    "status": "queued",
-    "submitted_at": time_submitted
-    }
+    job = submit_controller.handle_submit(input_data)
 
-    r.rpush("jobs", json.dumps(job))
-
-    return jsonify(job)
+    return jsonify(job), 202
 
 
-@app.route("/status/<job_id>")
-def status(job_id):
-    jobs = r.lrange("jobs", 0, -1)
-    for job_json in jobs:
-        job = json.loads(job_json)
-        if job.get("job_id") == job_id:
-            return jsonify(job)
+# @app.route("/redis_status/<job_id>")
+# def status(job_id):
+#     jobs = r.lrange("jobs", 0, -1)
+#     for job_json in jobs:
+#         job = json.loads(job_json)
+#         if job.get("job_id") == job_id:
+#             return jsonify(job)
         
-    return jsonify({
-    "job_id": job_id,
-    "status": "unknown",
-    "info": "Not found in queue — may be processing or completed"
-})
+#     return jsonify({
+#     "job_id": job_id,
+#     "status": "unknown",
+#     "info": "Not found in queue, may be processing or completed"
+# })
 
-app.run(host="0.0.0.0", port=5000)
-print("running")
+@app.route("/redis_status")
+def status():
+    try:
+        raw_jobs = redis_queue.get_all_jobs()
+        jobs = [json.loads(job_str) for job_str in raw_jobs]
+        return jsonify(jobs), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+    
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)
