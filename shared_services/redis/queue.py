@@ -1,6 +1,6 @@
 import json
 import os
-from shared_services.redis_client import r
+from shared_services.redis.client import r
 
 redis_queue = os.getenv("REDIS_QUEUE", "jobs")
 

@@ -1,9 +1,8 @@
-from flask import request, jsonify
 import json
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import uuid
-from shared_services import redis_queue
+from shared_services.redis import queue
 
 def handle_submit(input_data):
     job_id = str(uuid.uuid4())
@@ -16,6 +15,6 @@ def handle_submit(input_data):
     "submitted_at": time_submitted
     }
 
-    redis_queue.push_job(job)
+    queue.push_job(job)
 
     return job

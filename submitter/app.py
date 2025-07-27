@@ -1,10 +1,9 @@
 from flask import Flask, request, redirect, url_for, render_template_string, jsonify
 from controllers import submit_controller
-from shared_services import redis_queue
+from shared_services.redis import queue
 import json
 import boto3
 import os
-from shared_services import redis_queue
 
 
 dynamodb = boto3.client("dynamodb")
@@ -13,7 +12,7 @@ app = Flask(__name__)
 
 TABLE_NAME = os.getenv("TABLE_NAME", "jobs")
 
-print("waiting for table connection")
+print("waiting for table coannection")
 dynamodb.get_waiter('table_exists').wait(TableName=TABLE_NAME)
 print(f"connected to '{TABLE_NAME}' table successfully.")
 
@@ -45,7 +44,7 @@ def submit():
 @app.route("/redis_status")
 def status():
     try:
-        raw_jobs = redis_queue.get_all_jobs()
+        raw_jobs = queue.get_all_jobs()
         jobs = [json.loads(job_str) for job_str in raw_jobs]
         return jsonify(jobs), 200
     except Exception as e:
