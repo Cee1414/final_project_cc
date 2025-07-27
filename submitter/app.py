@@ -1,9 +1,11 @@
 from flask import Flask, request, redirect, url_for, render_template_string, jsonify
 from controllers import submit_controller
-from services import redis_queue
+from shared_services import redis_queue
 import json
 import boto3
 import os
+from shared_services import redis_queue
+
 
 dynamodb = boto3.client("dynamodb")
 

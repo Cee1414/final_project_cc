@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import uuid
-from services import redis_queue
+from shared_services import redis_queue
 
 def handle_submit(input_data):
     job_id = str(uuid.uuid4())

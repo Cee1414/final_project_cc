@@ -19,7 +19,8 @@ services:
     volumes:
       - ~/.aws:/root/.aws
     build:
-      context: ./submitter
+      dockerfile: submitter/Dockerfile
+      context: .
     command: python app.py
     ports: 
       - "127.0.0.1:5000:5000"

@@ -4,9 +4,8 @@ import os
 
 TABLE_NAME = os.getenv("TABLE_NAME", "jobs")
 ENV = os.getenv("ENV", "development")
-REGION = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
 
-dynamodb = boto3.client("dynamodb", region_name=REGION)
+dynamodb = boto3.client("dynamodb")
 
 def table_exists(table_name):
     try:
@@ -21,11 +20,11 @@ def table_exists(table_name):
             raise
 
     
-def delete_table(table_name):
-    print(f" Deleting table '{table_name}' ...")
-    dynamodb.delete_table(TableName=table_name)
-    dynamodb.get_waiter('table_not_exists').wait(TableName=table_name)
-    print("Table deleted.")
+# def delete_table(table_name):
+#     print(f" Deleting table '{table_name}' ...")
+#     dynamodb.delete_table(TableName=table_name)
+#     dynamodb.get_waiter('table_not_exists').wait(TableName=table_name)
+#     print("Table deleted.")
 
 def create_table(table_name):
     print(f"Creating table '{table_name}'...")
@@ -45,9 +44,8 @@ def create_table(table_name):
     print("Table created successfully.")
 
 def init_dynamo_instance():
-    if table_exists(TABLE_NAME):
-        delete_table(TABLE_NAME)
-    create_table(TABLE_NAME)
+    if not table_exists(TABLE_NAME):
+        create_table(TABLE_NAME)
 
 
 if __name__ == "__main__":
