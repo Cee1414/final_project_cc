@@ -1,0 +1,5 @@
+boto3
+Flask
+redis
+mypy-boto3-dynamodb
+boto3-stubs[essential]

@@ -12,4 +12,8 @@ docker-compose.override.yml
 *.log
 *.pid
 
+#intellij
 .idea/
+
+#venv
+.venv/

@@ -29,5 +29,14 @@ services:
       - TABLE_NAME=jobs
       - ENV=development
       - AWS_DEFAULT_REGION=us-east-1
+  
+  worker:
+    volumes:
+    - ~/.aws:/root/.aws
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+    command: python worker.py
+
     
 

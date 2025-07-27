@@ -7,5 +7,9 @@ redis_queue = os.getenv("REDIS_QUEUE", "jobs")
 def push_job(job):
     r.rpush(redis_queue, json.dumps(job))
 
+def pop_job():
+    return r.rpop(redis_queue)
+
 def get_all_jobs():
     return r.lrange(redis_queue, 0, -1)
+
