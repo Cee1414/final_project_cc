@@ -1,11 +1,12 @@
-import boto3
 import botocore
 import os
+from shared_services.dynamodb.client import dynamodb
+
 
 TABLE_NAME = os.getenv("TABLE_NAME", "jobs")
 ENV = os.getenv("ENV", "development")
 
-dynamodb = boto3.client("dynamodb")
+# dynamodb = boto3.client("dynamodb")
 
 def table_exists(table_name):
     try:

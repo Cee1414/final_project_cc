@@ -2,11 +2,8 @@ from flask import Flask, request, redirect, url_for, render_template_string, jso
 from controllers import submit_controller
 from shared_services.redis import queue
 import json
-import boto3
 import os
-
-
-dynamodb = boto3.client("dynamodb")
+from shared_services.dynamodb.client import dynamodb
 
 app = Flask(__name__)
 

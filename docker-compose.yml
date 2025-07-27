@@ -8,7 +8,8 @@ services:
     volumes:
         - ~/.aws:/root/.aws
     build:
-      context: ./init
+      context: .
+      dockerfile: init/Dockerfile
     command: python init_dynamo.py
     environment:
       - TABLE_NAME=jobs
