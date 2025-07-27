@@ -1,16 +1,15 @@
 from flask import Flask, request, redirect, url_for, render_template_string, jsonify
 from controllers import submit_controller
-from shared_services.redis import queue
-import json
 import os
-from shared_services.dynamodb.client import dynamodb
+from shared_services.dynamodb.client import dynamodb_client
+from controllers.status_controller import get_redis_status, get_dynamodb_status
 
 app = Flask(__name__)
 
 TABLE_NAME = os.getenv("TABLE_NAME", "jobs")
 
 print("waiting for table coannection")
-dynamodb.get_waiter('table_exists').wait(TableName=TABLE_NAME)
+dynamodb_client.get_waiter('table_exists').wait(TableName=TABLE_NAME)
 print(f"connected to '{TABLE_NAME}' table successfully.")
 
 @app.route("/submit", methods=["POST"])
@@ -39,13 +38,22 @@ def submit():
 # })
 
 @app.route("/redis_status")
-def status():
+def redis_status():
     try:
-        raw_jobs = queue.get_all_jobs()
-        jobs = [json.loads(job_str) for job_str in raw_jobs]
+        jobs = get_redis_status()
         return jsonify(jobs), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+@app.route("/dynamodb_status")
+def dyamodb_status():
+    try:
+        jobs = get_dynamodb_status()
+        return jsonify(jobs), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
 
 
     
