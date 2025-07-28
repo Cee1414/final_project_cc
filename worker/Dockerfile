@@ -7,7 +7,7 @@ WORKDIR /app
 COPY ../requirements.txt .
 RUN pip install -r requirements.txt
 
-COPY worker/worker.py .
+COPY worker/ .
 COPY shared_services ./shared_services
 
 CMD ["python", "worker.py"]
