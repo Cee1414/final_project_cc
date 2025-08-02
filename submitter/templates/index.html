@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Job Dashboard</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: system-ui,-apple-system,BlinkMacSystemFont,sans-serif; background:#f0f2f5; margin:0; padding:1rem; }
+    .card { background:#fff; padding:1rem; border-radius:12px; box-shadow:0 4px 12px rgba(0,0,0,.05); margin-bottom:1rem; }
+    .flex { display:flex; gap:0.5rem; flex-wrap:wrap; }
+    button { cursor:pointer; border:none; padding:6px 12px; border-radius:8px; background:#2563eb; color:#fff; }
+    input, select { padding:6px; border:1px solid #ccc; border-radius:6px; font-family:inherit; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:6px 8px; border-bottom:1px solid #e2e8f0; text-align:left; }
+    tr:hover { background:#f9fbfd; }
+    pre { background:#f5f7fa; padding:8px; border-radius:6px; overflow:auto; }
+    .small { font-size:12px; color:#555; margin-top:4px; }
+    .badge { display:inline-block; padding:4px 10px; border-radius:999px; font-size:10px; font-weight:600; color:#fff; background:#10b981; }
+    .error { color:#b91c1c; }
+    .preview-box { white-space: pre-wrap; max-height:160px; overflow:auto; background:#f5f7fa; padding:6px; border-radius:6px; border:1px solid #d1d5db; margin-top:6px; font-family: monospace; font-size:11px; }
+  </style>
+</head>
+<body>
+  <div class="page-header" style="display:flex; flex-direction:column; align-items:center; text-align:center; margin-bottom:1rem;">
+    <h1 style="margin:0; font-size:1.75rem;">Job Dashboard</h1>
+    <div class="subtitle" style="margin:4px 0 0; color:#555; font-size:0.95rem;">
+  	  Made by: Bilal A, Ian H, Edison L and Evan L.
+	</div>
+  </div>
+  <div class="card">
+    <form id="submit-form" style="display:flex; gap:1rem; align-items:start; flex-wrap:wrap;">
+      <div style="flex:1; min-width:220px;">
+        <label>
+		      <!-- Tasks right now thee is only an option for calculation or file upload -->
+          Task
+          <select id="task-select" aria-label="choose task">
+            <option value="heavy_calc">Calculation</option>
+            <option value="process_file">Process File</option>
+          </select>
+        </label>
+        <div id="task-params">
+          <!-- placeholder for renderParams -->
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; gap:6px; flex-shrink:0;">
+        <button type="submit">Submit</button>
+      </div>
+    </form>
+    <div id="submit-error" class="error" style="margin-top:6px;"></div>
+  </div>
+
+  <div class="flex" style="gap:1rem;">
+    <div style="flex:2;">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div><h2 style="margin:0;">Jobs</h2></div>
+          <div class="flex">
+            <select id="filter-status">
+			        <!-- Job statuses -->
+              <option value="">All</option>
+              <option value="pending">Pending</option>
+              <option value="running">Running</option>
+              <option value="completed">Completed</option>
+              <option value="failed">Failed</option>
+            </select>
+            <button id="refresh">Refresh</button>
+          </div>
+        </div>
+        <div style="margin-top:8px; position:relative;">
+          <div id="jobs-loading" style="position:absolute; right:8px; top:8px; font-size:12px;">loading...</div>
+          <table aria-label="jobs table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Status</th>
+                <th>Created</th>
+                <th>Updated</th>
+                <th>Detail</th>
+              </tr>
+            </thead>
+            <tbody id="jobs-tbody">
+              <tr><td colspan="5" style="text-align:center;">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div style="flex:1; min-width:280px;">
+      <div class="card">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div><h2 style="margin:0;">Detail</h2></div>
+          <div><button id="close-detail" style="background:#6b7280;">Clear</button></div>
+        </div>
+        <div id="detail-content" style="margin-top:8px;">
+          <div class="small">Select a job to view details.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = '';
+    let currentDetailId = null;
+    let pollHandle = null;
+
+    function humanDate(ts) {
+      try { return new Date(ts).toLocaleString(); } catch { return ts; }
+    }
+
+    const taskParamsContainer = document.getElementById('task-params');
+    const taskSelect = document.getElementById('task-select');
+
+  	// update page when dropdown is changed
+    function renderParams() { 
+      const t = taskSelect.value;
+      taskParamsContainer.innerHTML = '';
+      if (t === 'heavy_calc') {
+        taskParamsContainer.innerHTML = `
+          <label>Iterations
+            <input type="number" min="1" id="param-iterations" value="1000000" />
+          </label>
+        `;
+      } else if (t === 'process_file') {
+        taskParamsContainer.innerHTML = `
+          <label>Upload file
+            <input type="file" id="param-file" />
+            <div class="small">File is required for this task.</div>
+          </label>
+          <div id="file-preview" class="preview-box" style="display:none;"></div>
+        `;
+        setupFilePreviewListener();
+      }
+    }
+	
+  	// read file for file upload for perview
+    function setupFilePreviewListener() {
+      const fileInput = document.getElementById('param-file');
+      const previewDiv = document.getElementById('file-preview');
+      if (!fileInput || !previewDiv) return;
+      fileInput.addEventListener('change', async () => {
+        previewDiv.style.display = 'none';
+        previewDiv.textContent = '';
+        const f = fileInput.files[0];
+        if (!f) return;
+        previewDiv.style.display = '';
+        previewDiv.textContent = `Selected file: ${f.name} (${Math.round(f.size/1024)} KB)\nReading preview...`;
+        try {
+          if (f.type.startsWith('text/') || f.size <= 10000) {
+            const text = await f.text();
+            const snippet = text.slice(0, 2000);
+            const ellipsis = text.length > snippet.length ? '\n…(truncated)' : '';
+            previewDiv.textContent = `Selected file: ${f.name} (${Math.round(f.size/1024)} KB)\n\nPreview (first ${snippet.length} chars):\n` + snippet + ellipsis;
+          } else {
+            previewDiv.textContent = `Selected file: ${f.name} (${Math.round(f.size/1024)} KB)\n\nBinary file; no text preview shown.`;
+          }
+        } catch (e) {
+          previewDiv.textContent = `Failed to read file: ${e.message}`;
+        }
+      });
+    }
+
+  	// Assemble form data and send job off to /submit, uses multipart/form-data
+    async function submitJob(e) {
+      e.preventDefault();
+      document.getElementById('submit-error').textContent = '';
+      const t = taskSelect.value;
+
+      const form = new FormData();
+      form.append('task', t);
+      form.append('created_by', 'frontend');
+
+      if (t === 'heavy_calc') {
+        const itEl = document.getElementById('param-iterations');
+        const it = parseInt(itEl?.value, 10);
+        form.append('iterations', isNaN(it) ? 1000000 : it);
+      } else if (t === 'process_file') {
+        const fileInput = document.getElementById('param-file');
+        if (!(fileInput && fileInput.files && fileInput.files[0])) {
+          document.getElementById('submit-error').textContent = 'Please choose a file for process_file.'; 
+          return;
+        }
+        form.append('file', fileInput.files[0]);
+      }
+
+      try {
+        const res = await fetch(API_BASE + '/submit', {
+          method: 'POST',
+          body: form
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || res.statusText);
+        }
+        
+        await fetchJobs();
+        
+      } catch (e) {
+        console.error(e);
+        document.getElementById('submit-error').textContent = 'Submit failed: ' + e.message;
+      }
+    }
+
+  	//get job list from backend to updaet the table, goes to /redis_status appends job id if there is one
+    async function fetchJobs() {
+      const tbody = document.getElementById('jobs-tbody');
+      document.getElementById('jobs-loading').style.display = '';
+      const filter = document.getElementById('filter-status').value;
+      try {
+        const q = filter ? '?status=' + encodeURIComponent(filter) : '';
+        const res = await fetch(API_BASE + '/redis_status' + q);
+        if (!res.ok) throw new Error('fetch failed');
+        const list = await res.json();
+        tbody.innerHTML = '';
+        if (!Array.isArray(list) || list.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No jobs found.</td></tr>';
+        } else {
+          for (const j of list) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td style="word-break:break-all;">${j.id}</td>
+              <td>${j.status}</td>
+              <td>${humanDate(j.created_at)}</td>
+              <td>${humanDate(j.updated_at)}</td>
+              <td><button data-id="${j.id}">View</button></td>
+            `;
+            tr.querySelector('button').addEventListener('click', () => showDetail(j.id));
+            tbody.appendChild(tr);
+          }
+        }
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#b91c1c;">Error loading jobs</td></tr>';
+        console.error(e);
+      } finally {
+        document.getElementById('jobs-loading').style.display = 'none';
+      }
+    }
+
+  	// get details for a sepcific job and inject in to details pane
+    async function showDetail(id) {
+      currentDetailId = id;
+      const container = document.getElementById('detail-content');
+      container.innerHTML = '<div class="small">Loading...</div>';
+      try {
+        const res = await fetch(API_BASE + '/redis_status/' + encodeURIComponent(id));
+        if (!res.ok) throw new Error(await res.text());
+        const job = await res.json();
+        const parts = [];
+        parts.push(`<div><strong>ID:</strong> ${job.id}</div>`);
+        parts.push(`<div><strong>Status:</strong> ${job.status}</div>`);
+        parts.push(`<div><strong>Created:</strong> ${humanDate(job.created_at)}</div>`);
+        parts.push(`<div><strong>Updated:</strong> ${humanDate(job.updated_at)}</div>`);
+        if (job.payload) {
+          parts.push('<div class="badge" style="margin-top:6px;">Payload</div>');
+          parts.push(`<pre>${JSON.stringify(job.payload, null, 2)}</pre>`);
+        }
+        if (job.result) {
+          parts.push('<div class="badge" style="margin-top:6px;background:#6366f1;">Result</div>');
+          parts.push(`<pre>${JSON.stringify(job.result, null, 2)}</pre>`);
+        }
+        if (job.error) {
+          parts.push('<div class="badge" style="background:#fee2e2;color:#b91c1c;margin-top:6px;">Error</div>');
+          parts.push(`<pre>${JSON.stringify(job.error, null, 2)}</pre>`);
+        }
+        container.innerHTML = parts.join('');
+      } catch (e) {
+        container.innerHTML = `<div class="error">${e.message}</div>`;
+      }
+    }
+
+	  // gets job details every 5 seconds to update details pane
+    function startPolling() {
+      if (pollHandle) clearInterval(pollHandle);
+      pollHandle = setInterval(() => {
+        fetchJobs();
+        if (currentDetailId) showDetail(currentDetailId);
+      }, 5000);
+    }
+
+	  // Track events
+    document.getElementById('submit-form').addEventListener('submit', submitJob);
+    document.getElementById('refresh').addEventListener('click', (e) => { e.preventDefault(); fetchJobs(); });
+    document.getElementById('filter-status').addEventListener('change', fetchJobs);
+    document.getElementById('close-detail').addEventListener('click', (e) => {
+      e.preventDefault();
+      currentDetailId = null;
+      document.getElementById('detail-content').innerHTML = '<div class="small">Select a job to view details.</div>';
+    });
+
+    // initialize
+    renderParams();
+    fetchJobs();
+    startPolling();
+    taskSelect.addEventListener('change', renderParams);
+  </script>
+</body>
+</html>
