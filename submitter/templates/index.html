@@ -133,32 +133,32 @@
       setupFilePreviewListener('param-file', 'file-preview');
     } else if (t === 'brute_force') {
       taskParamsContainer.innerHTML = `
-        <label>Target Phrase
-          <input type="text" id="param-target" placeholder="e.g., secret123" />
+        <label>Target Hash
+          <input type="text" id="param-target" placeholder="5d41402abc4b2a76b9719d911017c592" />
         </label>
         <label>Wordlist
           <input type="file" id="param-wordlist" />
 		  <div style="flex:1; min-width:220px;">
-        <label>Hash
+        <label>Hash Type
           <select id="hash-select" aria-label="choose hash">
             <option value="md5">MD5</option>
             <option value="SHA256">SHA256</option>
 	 	    <option value="SHA512">SHA512</option>
           </select>
           
-          <div class="small">Upload a wordlist file and select a hash type to brute force against the target phrase.</div>
+          <div class="small">Upload a wordlist file and select a hash type to brute force against the target hash.</div>
         </label>
         <div id="wordlist-preview" class="preview-box" style="display:none;"></div>
       `;
       setupFilePreviewListener('param-wordlist', 'wordlist-preview');
     } else if (t === 'count_occurrence') {
       taskParamsContainer.innerHTML = `
-        <label>Target Phrase
+        <label>Target Letter
           <input type="text" id="param-target" placeholder="target letter" />
         </label>
         <label>File
           <input type="file" id="param-file" />
-          <div class="small">Upload a file to count occurrencesof the target letter.</div>
+          <div class="small">Upload a file to count occurrences of the target letter.</div>
         </label>
         <div id="File-preview" class="preview-box" style="display:none;"></div>
       `;
@@ -221,7 +221,7 @@
       const wordlistInput = document.getElementById('param-wordlist');
 	  const hashType = document.getElementById('hash-select')?.value || 'md5';
       if (!target) {
-        document.getElementById('submit-error').textContent = 'Target phrase is required for brute force.'; 
+        document.getElementById('submit-error').textContent = 'Target hash is required for brute force.'; 
         return;
       }
       if (!(wordlistInput && wordlistInput.files && wordlistInput.files[0])) {
