@@ -1,14 +1,23 @@
-import boto3
+# shared_services/dynamodb/client.py
 import os
-from mypy_boto3_dynamodb import DynamoDBClient
-from mypy_boto3_dynamodb.service_resource import DynamoDBServiceResource, Table
+import boto3
 
+# Table + config from environment
 TABLE_NAME = os.getenv("TABLE_NAME", "jobs")
+REGION = os.getenv("AWS_DEFAULT_REGION", "us-east-1")
+ENDPOINT_URL = os.getenv("AWS_ENDPOINT_URL")  # set in docker-compose for local
 
-# For infra
-dynamodb_client: DynamoDBClient = boto3.client("dynamodb")
+# Low-level client (used by init_utils for describe/create/waiters)
+dynamodb_client = boto3.client(
+    "dynamodb",
+    region_name=REGION,
+    endpoint_url=ENDPOINT_URL
+)
 
-# For job handling
-dynamodb_resource: DynamoDBServiceResource = boto3.resource("dynamodb")
-dynamodb_table: Table = dynamodb_resource.Table(TABLE_NAME)
-
+# High-level resource table (used by job_io for put/get/update/scan)
+_dynamodb_resource = boto3.resource(
+    "dynamodb",
+    region_name=REGION,
+    endpoint_url=ENDPOINT_URL
+)
+dynamodb_table = _dynamodb_resource.Table(TABLE_NAME)

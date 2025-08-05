@@ -7,7 +7,7 @@ from shared_services.dynamodb import job_io
 def handle_submit(input_data):
     job_id = str(uuid.uuid4())
     time_submitted = datetime.now(ZoneInfo("America/Chicago")).isoformat()
-
+    
     job = {
     "job_id": job_id,
     "input": input_data,

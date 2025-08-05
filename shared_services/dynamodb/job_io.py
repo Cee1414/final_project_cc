@@ -1,5 +1,8 @@
 from shared_services.dynamodb.client import dynamodb_table
 
+def get_job(job_id: str):
+    resp = dynamodb_table.get_item(Key={"job_id": job_id})
+    return resp.get("Item")
 
 def push_job(job):
     dynamodb_table.put_item(Item=job)

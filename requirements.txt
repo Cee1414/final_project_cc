@@ -1,5 +1,6 @@
 boto3
 Flask
+flask-cors
 redis
 mypy-boto3-dynamodb
 boto3-stubs[essential]
