@@ -28,7 +28,7 @@ services:
       context: .
       dockerfile: submitter/Dockerfile
     command: python app.py
-    ports: ["5000:5000"]
+    ports: ["127.0.0.1:5000:5000"]
     environment:
       - TABLE_NAME=jobs
       - ENV=development
